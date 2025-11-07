@@ -2,6 +2,7 @@
 (function(){
   'use strict';
 
+  // Quiz Data
   let questions = [
     { q: 'What does DOM stand for?', choices: ['Data Object Map','Document Object Model','Document Oriented Markup'], answer: 1 },
     { q: 'Strict equality operator?', choices: ['==','===','!='], answer: 1 },
@@ -15,115 +16,126 @@
     { q: 'Get attribute?', choices: ['el.attr()','el.getAttribute()','el.attribute()'], answer: 1 }
   ];
 
+  // Game State
   let currentQuestionIndex = 0;
   let score = 0;
   let timeLeft = 60;
   let timerId = null;
 
+  // DOM Elements
   let app = document.getElementById('app');
+  let msgDiv = document.getElementById('msg');
 
+  // Display message (following 01-Activities pattern)
+  function displayMessage(type, message) {
+    msgDiv.textContent = message;
+    msgDiv.className = type;
+  }
+
+  // Start timer
   function startTimer() {
     timerId = setInterval(function() {
       timeLeft--;
-      render();
-      
       if (timeLeft <= 0) {
         endQuiz();
+      } else {
+        render();
       }
     }, 1000);
   }
 
-  function displayQuestion() {
-    // Clear previous content
-    app.innerHTML = '';
+  // Render current state
+  function render() {
+    if (currentQuestionIndex >= questions.length) {
+      endQuiz();
+      return;
+    }
 
-    // Show timer and score
+    app.innerHTML = '';
+    
+    // Info bar
     let info = document.createElement('div');
     info.textContent = 'Time: ' + timeLeft + 's | Score: ' + score + '/' + questions.length + ' | Question ' + (currentQuestionIndex + 1) + '/' + questions.length;
     app.appendChild(info);
 
     let question = questions[currentQuestionIndex];
     
-    // Show question
+    // Question
     let questionEl = document.createElement('h2');
     questionEl.textContent = question.q;
     app.appendChild(questionEl);
 
-    // Create answer buttons
+    // Answer buttons
     for (let i = 0; i < question.choices.length; i++) {
       let button = document.createElement('button');
       button.textContent = question.choices[i];
       button.className = 'answer-btn';
-      
-      // With let, we don't need the closure pattern anymore!
       button.addEventListener('click', function() {
         selectAnswer(i);
       });
-      
       app.appendChild(button);
     }
   }
 
+  // Handle answer selection
   function selectAnswer(selectedIndex) {
     let question = questions[currentQuestionIndex];
     
-    // Check if answer is correct
     if (selectedIndex === question.answer) {
       score++;
     }
 
-    // Move to next question
     currentQuestionIndex++;
-    
-    // Check if quiz should end
-    if (currentQuestionIndex >= questions.length) {
-      endQuiz();
-    } else {
-      render();
-    }
+    render();
   }
 
+  // End quiz and show results
   function endQuiz() {
-    // Stop timer
     if (timerId) {
       clearInterval(timerId);
+      timerId = null;
     }
 
-    // Clear content and show results
     app.innerHTML = '';
     
-    let resultsTitle = document.createElement('h2');
-    resultsTitle.textContent = 'Quiz Complete!';
-    app.appendChild(resultsTitle);
+    // Results
+    let title = document.createElement('h2');
+    title.textContent = timeLeft <= 0 ? '⏰ Time\'s Up!' : '🎉 Quiz Complete!';
+    app.appendChild(title);
     
-    let finalScore = document.createElement('p');
-    finalScore.textContent = 'Final Score: ' + score + ' out of ' + questions.length;
-    app.appendChild(finalScore);
+    let scoreText = document.createElement('p');
+    scoreText.textContent = 'Final Score: ' + score + ' out of ' + questions.length;
+    app.appendChild(scoreText);
     
-    let timeInfo = document.createElement('p');
-    if (timeLeft > 0) {
-      timeInfo.textContent = 'Time remaining: ' + timeLeft + ' seconds';
-    } else {
-      timeInfo.textContent = 'Time expired!';
-    }
-    app.appendChild(timeInfo);
+    let percentage = Math.round((score / questions.length) * 100);
+    let percentageText = document.createElement('p');
+    percentageText.textContent = 'Percentage: ' + percentage + '%';
+    app.appendChild(percentageText);
+    
+    // Restart button
+    let restartBtn = document.createElement('button');
+    restartBtn.textContent = 'Take Quiz Again';
+    restartBtn.className = 'answer-btn';
+    restartBtn.addEventListener('click', function() {
+      currentQuestionIndex = 0;
+      score = 0;
+      timeLeft = 60;
+      displayMessage('', '');
+      startTimer();
+      render();
+    });
+    app.appendChild(restartBtn);
+    
+    // Show message
+    let messageType = percentage >= 70 ? 'success' : 'error';
+    let messageText = percentage >= 70 ? 'Great job! You passed!' : 'Try again to improve your score.';
+    displayMessage(messageType, messageText);
   }
 
-  function render() {
-    // Check if quiz should end
-    if (currentQuestionIndex >= questions.length || timeLeft <= 0) {
-      endQuiz();
-      return;
-    }
-    
-    // Display current question
-    displayQuestion();
-  }
-
-  // Initialize the quiz
+  // Initialize
   function init() {
-    if (!app) {
-      console.error('Could not find app element');
+    if (!app || !msgDiv) {
+      console.error('Missing required elements');
       return;
     }
     
@@ -131,7 +143,6 @@
     render();
   }
 
-  // Start the quiz
   init();
 
 })();
